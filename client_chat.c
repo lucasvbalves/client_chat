@@ -2,8 +2,6 @@
 ** client.c -- a stream socket client demo
 */
 
-//teste git
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -233,16 +231,6 @@ int main(int argc, char *argv[])
                     printf("Comando HELP para lista de comandos suportados\n");
                     
                 }
-                
-
-
-
-
-
-
-                
-                
-                
 
             }
 
