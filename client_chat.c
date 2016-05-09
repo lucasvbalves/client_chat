@@ -37,9 +37,10 @@ int main(int argc, char *argv[])
     
     int rv;
     int i;
-    char comando[MAXDATASIZE];
+    char comando[7];
     char buf_recv[MAXDATASIZE];
     char buf_send[MAXDATASIZE];
+    char buf_stdin[MAXDATASIZE];
     char ip_string[INET6_ADDRSTRLEN];   //STRING COM IP. TAMANHO DE IPv6.
     struct addrinfo hints;
     
@@ -115,14 +116,83 @@ int main(int argc, char *argv[])
     if (p == NULL) {
         fprintf(stderr, "ERRO: client_chat falhou em conectar\n");
         return 2;
+    } else { //conectado. enviar client_name para server
+
+        strcpy(buf_send, argv[1]);
+        printf("client name enviado pro servidor: %s\n", buf_send);
+        string_length = strlen(buf_send);
+        bytes_sent = send(sockfd, buf_send, string_length, 0);
+        if (bytes_sent == -1) {
+            perror("send");
+        }
+        printf("%d bytes enviados\n", bytes_sent);
+        
+        
+
+
+        if ((numbytes = recv(sockfd, buf_recv, MAXDATASIZE - 1, 0)) == -1) {
+
+            perror("ERRO (recv)");
+            exit(1);
+
+        } else if (numbytes == 0) {
+
+            printf("ERRO (recv): Servidor fechou conexão\n");
+            exit(1);
+
+        } else {
+
+            if (strcmp(buf_recv, "Conectado com sucesso") == 0) {
+
+                //buf_recv[numbytes] = '\0';
+                printf("%s\n", buf_recv);
+
+            } else {
+
+                //buf_recv[numbytes] = '\0';
+                printf("%s\n", buf_recv);
+                exit(1);
+
+            }
+        }
+
+
+
+
+
+        /*
+        FD_ZERO(&readfds);
+        FD_SET(sockfd, &readfds);
+
+        timeout.tv_sec = 4;
+        timeout.tv_usec = 0;
+
+        rv = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
+
+        if (rv == -1) {
+
+            perror("ERRO (select)"); // error occurred in select()
+
+        } else if (rv == 0) {
+
+            printf("ERRO: Timeout ocorreu\n");\
+            
+        } else { // socket recebeu mensagem do server
+
+            if (FD_ISSET(sockfd, &readfds)) {
+
+                
+         * 
+         * 
+         * 
+         * 
+         * 
+            }
+        }
+         * */
     }
-    else{
-        printf("Conectado com sucesso\n");
-    }
-    
-    
-    freeaddrinfo(servinfo); // all done with this structure
-   
+
+    freeaddrinfo(servinfo); // all done with this structure    
     
     while(1) {
 
@@ -173,48 +243,59 @@ int main(int argc, char *argv[])
 
             if (FD_ISSET(STDIN_FILENO, &readfds)) {
 
-                fgets(buf_send, sizeof buf_send, stdin);
+                fgets(buf_stdin, sizeof buf_stdin, stdin);
                 
                 // limpar enter do fgets
-                string_length = strlen(buf_send);
-                buf_send[string_length-1] = '\0';
+                string_length = strlen(buf_stdin);
+                buf_stdin[string_length-1] = '\0';
                 //printf("stdin read:'%s'\n", buf_send);
                 
                 i = 0;
-                while (buf_send[i] != ' ') {
+                while (buf_stdin[i] != ' ' && i < 6) {
 
-                    comando[i] = toupper(buf_send[i]);
+                    comando[i] = toupper(buf_stdin[i]);
                     i++;
 
                 }
-                
+
                 printf("comando: %s\n", comando);
 
-                if (strcmp(comando, "SEND") == 0) {
-                    
-                    strcat(argv[1], ": ");
-                    strcat(argv[1], buf_send);
-                    strcpy(buf_send, argv[1]);
+                //memset(buf_send, '\0', sizeof buf_send);
+                //printf("buf_send após memset: %s\n", buf_send);
 
-                    //sprintf(buf_send, "%s: %s", argv[1], buf_send);
-                    
+                if (strcmp(comando, "SEND") == 0 || strcmp(comando, "SENDTO") == 0) {
+
+                    strcpy(buf_send, buf_stdin);
+
                     printf("enviado pro servidor -> %s\n", buf_send);
 
                     string_length = strlen(buf_send);
 
                     bytes_sent = send(sockfd, buf_send, string_length, 0);
 
-                    printf("executar comando %s\n", comando);
+                    if (bytes_sent == -1) {
+                        perror("send");
+                    }
 
-
-                } else if (strcmp(comando, "SENDTO") == 0) {
-
-                    printf("executar comando %s\n", comando);
+                    printf("executou comando %s\n", comando);
+                    printf("%d bytes enviados\n", bytes_sent);
 
 
                 } else if (strcmp(comando, "WHO") == 0) {
 
-                    printf("executar comando %s\n", comando);
+                    strcpy(buf_send, comando);
+
+                    string_length = strlen(buf_send);
+
+                    bytes_sent = send(sockfd, buf_send, string_length, 0);
+
+                    if (bytes_sent == -1) {
+                        perror("send");
+                    }
+
+                    printf("enviado pro servidor -> %s\n", buf_send);
+                    printf("executou comando %s\n", comando);
+                    printf("%d bytes enviados\n", bytes_sent);
 
                 } else if (strcmp(comando, "HELP") == 0) {
 
@@ -231,6 +312,11 @@ int main(int argc, char *argv[])
                     printf("Comando HELP para lista de comandos suportados\n");
                     
                 }
+                
+                memset(comando, '\0', sizeof comando);
+                printf("'comando' após memset: %s\n", comando);
+                
+
 
             }
 
