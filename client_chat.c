@@ -1,6 +1,6 @@
 /*
-** client.c -- a stream socket client demo
-*/
+ ** client.c -- a stream socket client demo
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,33 +19,32 @@
 #define MAXDATASIZE 2000 // max number of bytes we can get at once 
 
 // get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
+
+void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
+        return &(((struct sockaddr_in*) sa)->sin_addr);
     }
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+    return &(((struct sockaddr_in6*) sa)->sin6_addr);
 }
 
-int main(int argc, char *argv[])
-{
-    int sockfd;             //socket file descriptor
+int main(int argc, char *argv[]) {
+    int sockfd; //socket file descriptor
     int numbytes;
     int string_length;
     int bytes_sent;
-    
+
     int rv;
     int i;
     char comando[7];
     char buf_recv[MAXDATASIZE];
     char buf_send[MAXDATASIZE];
     char buf_stdin[MAXDATASIZE];
-    char ip_string[INET6_ADDRSTRLEN];   //STRING COM IP. TAMANHO DE IPv6.
+    char ip_string[INET6_ADDRSTRLEN]; //STRING COM IP. TAMANHO DE IPv6.
     struct addrinfo hints;
-    
+
     //ponteiro para lista encadeada de "struct addrinfo" com informacoes
-    struct addrinfo *servinfo;  
+    struct addrinfo *servinfo;
     struct addrinfo *p;
 
     struct timeval timeout;
@@ -54,7 +53,7 @@ int main(int argc, char *argv[])
     fd_set exceptfds;
 
 
-    
+
 
     /*  PROTOTIPO DE "struct addrinfo"
 
@@ -69,34 +68,34 @@ int main(int argc, char *argv[])
         struct sockaddr *ai_addr;   // binary address
         struct addrinfo *ai_next;   // next structure in linked list
     };
-    */    
-    
+     */
+
     //VERIFICACAO DO NUMERO DE ARGUMENTOS PASSADOS
     if (argc != 4) {
-        fprintf(stderr,"Uso: client_chat <CLIENT_NAME> <SERVER_ADDRESS> <SERVER_PORT>\n");
+        fprintf(stderr, "Uso: client_chat <CLIENT_NAME> <SERVER_ADDRESS> <SERVER_PORT>\n");
         exit(1);
     }
-    
-    memset(&hints, 0, sizeof hints);    //PREENCHE STRUCT "HINTS" COM ZERO
-    hints.ai_family = AF_UNSPEC;        //IPv4 OU IPv6
-    hints.ai_socktype = SOCK_STREAM;    //TCP STREM SOCKET
-    
+
+    memset(&hints, 0, sizeof hints); //PREENCHE STRUCT "HINTS" COM ZERO
+    hints.ai_family = AF_UNSPEC; //IPv4 OU IPv6
+    hints.ai_socktype = SOCK_STREAM; //TCP STREM SOCKET
+
     //ARGV[1] = CLIENT_NAME
     //ARGV[2] = SERVER_ADDRESS
     //ARGV[3] = SERVER_PORT
     //VERIFICACAO DE GETADDRINFO
-    
-    rv = getaddrinfo(argv[2], argv[3], &hints, &servinfo);    
+
+    rv = getaddrinfo(argv[2], argv[3], &hints, &servinfo);
     if (rv != 0) {
         fprintf(stderr, "ERRO (getaddrinfo): %s\n", gai_strerror(rv));
         return 1;
     }
 
     // loop through all the results and connect to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        
+    for (p = servinfo; p != NULL; p = p->ai_next) {
+
         sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-        
+
         // sockfd == -1 erro
         if (sockfd == -1) {
             perror("ERRO (socket)");
@@ -119,16 +118,11 @@ int main(int argc, char *argv[])
     } else { //conectado. enviar client_name para server
 
         strcpy(buf_send, argv[1]);
-        printf("client name enviado pro servidor: %s\n", buf_send);
         string_length = strlen(buf_send);
         bytes_sent = send(sockfd, buf_send, string_length, 0);
         if (bytes_sent == -1) {
             perror("send");
         }
-        printf("%d bytes enviados\n", bytes_sent);
-        
-        
-
 
         if ((numbytes = recv(sockfd, buf_recv, MAXDATASIZE - 1, 0)) == -1) {
 
@@ -144,57 +138,21 @@ int main(int argc, char *argv[])
 
             if (strcmp(buf_recv, "Conectado com sucesso") == 0) {
 
-                //buf_recv[numbytes] = '\0';
                 printf("%s\n", buf_recv);
 
             } else {
 
-                //buf_recv[numbytes] = '\0';
                 printf("%s\n", buf_recv);
                 exit(1);
 
             }
         }
 
-
-
-
-
-        /*
-        FD_ZERO(&readfds);
-        FD_SET(sockfd, &readfds);
-
-        timeout.tv_sec = 4;
-        timeout.tv_usec = 0;
-
-        rv = select(sockfd + 1, &readfds, NULL, NULL, &timeout);
-
-        if (rv == -1) {
-
-            perror("ERRO (select)"); // error occurred in select()
-
-        } else if (rv == 0) {
-
-            printf("ERRO: Timeout ocorreu\n");\
-            
-        } else { // socket recebeu mensagem do server
-
-            if (FD_ISSET(sockfd, &readfds)) {
-
-                
-         * 
-         * 
-         * 
-         * 
-         * 
-            }
-        }
-         * */
     }
 
     freeaddrinfo(servinfo); // all done with this structure    
-    
-    while(1) {
+
+    while (1) {
 
         // clear the set ahead of time
         FD_ZERO(&readfds);
@@ -209,16 +167,12 @@ int main(int argc, char *argv[])
         FD_SET(STDIN_FILENO, &exceptfds);
 
 
-        rv = select(sockfd+1, &readfds, NULL, &exceptfds, NULL);
+        rv = select(sockfd + 1, &readfds, NULL, &exceptfds, NULL);
 
         if (rv == -1) {
-            
+
             perror("ERRO (select)"); // error occurred in select()
-            
-        } else if (rv == 0) {
-            
-            printf("ERRO: Timeout ocorreu\n");\
-            
+
         } else {
             // one or both of the descriptors have data
             if (FD_ISSET(sockfd, &readfds)) {
@@ -234,9 +188,9 @@ int main(int argc, char *argv[])
                     exit(1);
 
                 } else {
-                    
+
                     buf_recv[numbytes] = '\0';
-                    printf("client: received '%s'\n", buf_recv);
+                    printf("%s\n", buf_recv);
 
                 }
             }
@@ -244,12 +198,11 @@ int main(int argc, char *argv[])
             if (FD_ISSET(STDIN_FILENO, &readfds)) {
 
                 fgets(buf_stdin, sizeof buf_stdin, stdin);
-                
+
                 // limpar enter do fgets
                 string_length = strlen(buf_stdin);
-                buf_stdin[string_length-1] = '\0';
-                //printf("stdin read:'%s'\n", buf_send);
-                
+                buf_stdin[string_length - 1] = '\0';
+
                 i = 0;
                 while (buf_stdin[i] != ' ' && i < 6) {
 
@@ -258,16 +211,9 @@ int main(int argc, char *argv[])
 
                 }
 
-                printf("comando: %s\n", comando);
-
-                //memset(buf_send, '\0', sizeof buf_send);
-                //printf("buf_send após memset: %s\n", buf_send);
-
                 if (strcmp(comando, "SEND") == 0 || strcmp(comando, "SENDTO") == 0) {
 
                     strcpy(buf_send, buf_stdin);
-
-                    printf("enviado pro servidor -> %s\n", buf_send);
 
                     string_length = strlen(buf_send);
 
@@ -276,9 +222,6 @@ int main(int argc, char *argv[])
                     if (bytes_sent == -1) {
                         perror("send");
                     }
-
-                    printf("executou comando %s\n", comando);
-                    printf("%d bytes enviados\n", bytes_sent);
 
 
                 } else if (strcmp(comando, "WHO") == 0) {
@@ -293,10 +236,6 @@ int main(int argc, char *argv[])
                         perror("send");
                     }
 
-                    printf("enviado pro servidor -> %s\n", buf_send);
-                    printf("executou comando %s\n", comando);
-                    printf("%d bytes enviados\n", bytes_sent);
-
                 } else if (strcmp(comando, "HELP") == 0) {
 
                     printf("========== COMANDOS SUPORTADOS ==========\n");
@@ -310,25 +249,17 @@ int main(int argc, char *argv[])
 
                     printf("ERRO: Comando não suportado\n");
                     printf("Comando HELP para lista de comandos suportados\n");
-                    
-                }
-                
-                memset(comando, '\0', sizeof comando);
-                printf("'comando' após memset: %s\n", comando);
-                
 
+                }
+
+                memset(comando, '\0', sizeof comando);
 
             }
 
-
-            /*
-            if (FD_ISSET(sockfd, &exceptfds)) {
-                recv(s2, buf2, sizeof buf2, 0);
-            }*/
         }
     }
 
-    
+
     /*  PROTOTIPO
      const char *inet_ntop(int address_family, const void *src, char *dst, socklen_t size);
      */
