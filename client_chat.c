@@ -1,5 +1,5 @@
 /*
- ** client.c -- a stream socket client demo
+ ** client_chat.c
  */
 
 #include <stdio.h>
@@ -13,13 +13,11 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/select.h>
-
 #include <arpa/inet.h>
 
 #define MAXDATASIZE 2000 // max number of bytes we can get at once 
 
 // get sockaddr, IPv4 or IPv6:
-
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in*) sa)->sin_addr);
@@ -29,46 +27,24 @@ void *get_in_addr(struct sockaddr *sa) {
 }
 
 int main(int argc, char *argv[]) {
-    int sockfd; //socket file descriptor
-    int numbytes;
-    int string_length;
-    int bytes_sent;
+    int sockfd; // Socket file descriptor
+    int bytes_recv; // Número de bytes recebidos
+    int string_length; // Comprimento da string
+    int bytes_sent; // Número de bytes enviados
+    int ret_val; // Valor de retorno de funções
+    int i; // Contador para reconhecimento do comando
 
-    int rv;
-    int i;
-    char comando[7];
-    char buf_recv[MAXDATASIZE];
-    char buf_send[MAXDATASIZE];
-    char buf_stdin[MAXDATASIZE];
-    char ip_string[INET6_ADDRSTRLEN]; //STRING COM IP. TAMANHO DE IPv6.
+    char comando[7]; // String para armazenar comando
+    char buf_recv[MAXDATASIZE]; // String para armazenar buffer de recepção
+    char buf_send[MAXDATASIZE]; // String para armazenar buffer de envio
+    char buf_stdin[MAXDATASIZE]; // String para armazenar buffer do terminal
+
     struct addrinfo hints;
-
     //ponteiro para lista encadeada de "struct addrinfo" com informacoes
-    struct addrinfo *servinfo;
+    struct addrinfo *servinfo; // Ponteiro para estrutura com informações do server
     struct addrinfo *p;
+    fd_set readfds; // Conjunto de file descriptors para monitorar leitura
 
-    struct timeval timeout;
-    fd_set readfds;
-    fd_set writefds;
-    fd_set exceptfds;
-
-
-
-
-    /*  PROTOTIPO DE "struct addrinfo"
-
-    struct addrinfo {
-        int ai_flags;       // AI_PASSIVE, AI_CANONNAME, ...
-        int ai_family;      // AF_xxx
-        int ai_socktype;    // SOCK_xxx
-        int ai_protocol;    // 0 (auto) or IPPROTO_TCP, IPPROTO_UDP 
-
-        socklen_t ai_addrlen;       // length of ai_addr
-        char *ai_canonname;         // canonical name for nodename
-        struct sockaddr *ai_addr;   // binary address
-        struct addrinfo *ai_next;   // next structure in linked list
-    };
-     */
 
     //VERIFICACAO DO NUMERO DE ARGUMENTOS PASSADOS
     if (argc != 4) {
@@ -76,18 +52,18 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    memset(&hints, 0, sizeof hints); //PREENCHE STRUCT "HINTS" COM ZERO
+    memset(&hints, 0, sizeof hints); // Preenche struct "hints" com zero
     hints.ai_family = AF_UNSPEC; //IPv4 OU IPv6
-    hints.ai_socktype = SOCK_STREAM; //TCP STREM SOCKET
+    hints.ai_socktype = SOCK_STREAM; // Especifica tipo do socket: TCP stream socket
 
     //ARGV[1] = CLIENT_NAME
     //ARGV[2] = SERVER_ADDRESS
     //ARGV[3] = SERVER_PORT
     //VERIFICACAO DE GETADDRINFO
 
-    rv = getaddrinfo(argv[2], argv[3], &hints, &servinfo);
-    if (rv != 0) {
-        fprintf(stderr, "ERRO (getaddrinfo): %s\n", gai_strerror(rv));
+    ret_val = getaddrinfo(argv[2], argv[3], &hints, &servinfo);
+    if (ret_val != 0) {
+        fprintf(stderr, "ERRO (getaddrinfo): %s\n", gai_strerror(ret_val));
         return 1;
     }
 
@@ -124,12 +100,12 @@ int main(int argc, char *argv[]) {
             perror("send");
         }
 
-        if ((numbytes = recv(sockfd, buf_recv, MAXDATASIZE - 1, 0)) == -1) {
+        if ((bytes_recv = recv(sockfd, buf_recv, MAXDATASIZE - 1, 0)) == -1) {
 
             perror("ERRO (recv)");
             exit(1);
 
-        } else if (numbytes == 0) {
+        } else if (bytes_recv == 0) {
 
             printf("ERRO (recv): Servidor fechou conexão\n");
             exit(1);
@@ -156,20 +132,16 @@ int main(int argc, char *argv[]) {
 
         // clear the set ahead of time
         FD_ZERO(&readfds);
-        FD_ZERO(&writefds);
-        FD_ZERO(&exceptfds);
 
 
         // add our descriptors to the set
         FD_SET(sockfd, &readfds);
         FD_SET(STDIN_FILENO, &readfds);
-        FD_SET(sockfd, &exceptfds);
-        FD_SET(STDIN_FILENO, &exceptfds);
 
 
-        rv = select(sockfd + 1, &readfds, NULL, &exceptfds, NULL);
+        ret_val = select(sockfd + 1, &readfds, NULL, NULL, NULL);
 
-        if (rv == -1) {
+        if (ret_val == -1) {
 
             perror("ERRO (select)"); // error occurred in select()
 
@@ -177,19 +149,19 @@ int main(int argc, char *argv[]) {
             // one or both of the descriptors have data
             if (FD_ISSET(sockfd, &readfds)) {
 
-                if ((numbytes = recv(sockfd, buf_recv, MAXDATASIZE - 1, 0)) == -1) {
+                if ((bytes_recv = recv(sockfd, buf_recv, MAXDATASIZE - 1, 0)) == -1) {
 
                     perror("ERRO (recv)");
                     exit(1);
 
-                } else if (numbytes == 0) {
+                } else if (bytes_recv == 0) {
 
                     printf("ERRO (recv): Servidor fechou conexão\n");
                     exit(1);
 
                 } else {
 
-                    buf_recv[numbytes] = '\0';
+                    buf_recv[bytes_recv] = '\0';
                     printf("%s\n", buf_recv);
 
                 }
@@ -258,16 +230,6 @@ int main(int argc, char *argv[]) {
 
         }
     }
-
-
-    /*  PROTOTIPO
-     const char *inet_ntop(int address_family, const void *src, char *dst, socklen_t size);
-     */
-    /*    
-    inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr), ip_string, sizeof ip_string);
-    printf("client_chat: Conectando em %s\n", ip_string);
-     
-     */
 
     return 0;
 }
